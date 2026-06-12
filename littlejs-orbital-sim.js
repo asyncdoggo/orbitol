@@ -102,7 +102,7 @@ let mass5 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 0,
 let keyboardAx = 0;
 let keyboardAy = 0;
 
-let isPaused = false;
+let isPaused = true;
 
 function resetToUserInput()
 {
