@@ -1,99 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LittleJS Gravitational Orbital Simulation</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #000;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-
-        #gameContainer {
-            position: relative;
-            background-color: #222;
-            border: 2px solid #444;
-            box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
-            width: 1200px;
-            height: 800px;
-        }
-
-        canvas {
-            display: block;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: #0f0;
-            font-size: 14px;
-            background-color: rgba(0, 0, 0, 0.9);
-            padding: 15px;
-            border-radius: 5px;
-            max-width: 300px;
-            z-index: 1000;
-        }
-
-        #controls h3 {
-            margin: 0 0 10px 0;
-            color: #0ff;
-        }
-
-        #controls p {
-            margin: 5px 0;
-        }
-
-        #info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #0f0;
-            font-size: 12px;
-            background-color: rgba(0, 0, 0, 0.9);
-            padding: 15px;
-            border-radius: 5px;
-            z-index: 1000;
-        }
-    </style>
+    <link rel="stylesheet" href="/index.css">
 </head>
+
 <body>
+
     <div id="gameContainer">
         <!-- LittleJS will create the canvas here -->
-        <div id="controls">
-            <h3>Controls</h3>
-            <p><strong>W/A/S/D</strong> - Control blue object</p>
-            <p><strong>Up/Down/Left/Right</strong> - Alternative controls</p>
-            <p>Blue object is affected by gravitational forces from the three masses.</p>
-            <p><strong>Red & Green</strong> - Fixed massive bodies</p>
-            <p><strong>Yellow</strong> - Mobile body (also affected by gravity)</p>
-            <p>The blue dotted path shows the predicted trajectory.</p>
-        </div>
-        <div id="info">
-            <p>Gravitational Orbital Simulation</p>
-            <p>Powered by LittleJS</p>
+
+    </div>
+    <div id="paramPanel">
+        <h3>Simulation Parameters</h3>
+        <div id="items">
+
+            <div class="hint">Edit starting mass/position/velocity (and accel) for all bodies. Then use Reset /
+                Play-Pause.</div>
+
+            <div class="subTitle">Buttons</div>
+            <div class="btnRow">
+                <button id="btnPausePlay" type="button">Pause</button>
+                <button id="btnReset" type="button">Reset</button>
+            </div>
+
+            <div class="subTitle">Body Parameters</div>
+
+            <div class="massName">Blue Object (obj)</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="obj_mass"> </label>
+                        <input id="obj_mass" type="number" step="0.01" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">acc (ax,ay)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="obj_ax">ax</label>
+                        <input id="obj_ax" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="obj_ay">ay</label>
+                        <input id="obj_ay" type="number" step="0.0001" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="twoCol" style="margin-top:10px;">
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="obj_x">x</label>
+                        <input id="obj_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="obj_y">y</label>
+                        <input id="obj_y" type="number" step="0.1" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">vel (vx,vy)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="obj_vx">vx</label>
+                        <input id="obj_vx" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="obj_vy">vy</label>
+                        <input id="obj_vy" type="number" step="0.0001" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="massName">Static Masses</div>
+            <div class="massName" style="margin-top:6px;">mass1 (red)</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m1_mass"> </label>
+                        <input id="m1_mass" type="number" step="0.01" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m1_x">x</label>
+                        <input id="m1_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m1_y">y</label>
+                        <input id="m1_y" type="number" step="0.1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="massName" style="margin-top:10px;">mass2 (green)</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m2_mass"> </label>
+                        <input id="m2_mass" type="number" step="0.01" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m2_x">x</label>
+                        <input id="m2_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m2_y">y</label>
+                        <input id="m2_y" type="number" step="0.1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="massName" style="margin-top:10px;">Mobile Masses</div>
+
+            <div class="massName" style="margin-top:6px;">mass3</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m3_mass"> </label>
+                        <input id="m3_mass" type="number" step="0.01" />
+                    </div>
+                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m3_ax">ax</label>
+                        <input id="m3_ax" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m3_ay">ay</label>
+                        <input id="m3_ay" type="number" step="0.0001" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m3_x">x</label>
+                        <input id="m3_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m3_y">y</label>
+                        <input id="m3_y" type="number" step="0.1" />
+                    </div>
+                </div>
+            </div>
+            <div class="twoCol" style="margin-top:10px;">
+                <div>
+                    <div class="velAccLabel">vel (vx,vy)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m3_vx">vx</label>
+                        <input id="m3_vx" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m3_vy">vy</label>
+                        <input id="m3_vy" type="number" step="0.0001" />
+                    </div>
+                </div>
+                <div></div>
+            </div>
+
+            <div class="massName" style="margin-top:12px;">mass4</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m4_mass"> </label>
+                        <input id="m4_mass" type="number" step="0.01" />
+                    </div>
+                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m4_ax">ax</label>
+                        <input id="m4_ax" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m4_ay">ay</label>
+                        <input id="m4_ay" type="number" step="0.0001" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m4_x">x</label>
+                        <input id="m4_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m4_y">y</label>
+                        <input id="m4_y" type="number" step="0.1" />
+                    </div>
+                </div>
+            </div>
+            <div class="twoCol" style="margin-top:10px;">
+                <div>
+                    <div class="velAccLabel">vel (vx,vy)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m4_vx">vx</label>
+                        <input id="m4_vx" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m4_vy">vy</label>
+                        <input id="m4_vy" type="number" step="0.0001" />
+                    </div>
+                </div>
+                <div></div>
+            </div>
+
+            <div class="massName" style="margin-top:12px;">mass5</div>
+            <div class="twoCol">
+                <div>
+                    <div class="velAccLabel">mass</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m5_mass"> </label>
+                        <input id="m5_mass" type="number" step="0.01" />
+                    </div>
+                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m5_ax">ax</label>
+                        <input id="m5_ax" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m5_ay">ay</label>
+                        <input id="m5_ay" type="number" step="0.0001" />
+                    </div>
+                </div>
+                <div>
+                    <div class="velAccLabel">pos (x,y)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m5_x">x</label>
+                        <input id="m5_x" type="number" step="0.1" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m5_y">y</label>
+                        <input id="m5_y" type="number" step="0.1" />
+                    </div>
+                </div>
+            </div>
+            <div class="twoCol" style="margin-top:10px;">
+                <div>
+                    <div class="velAccLabel">vel (vx,vy)</div>
+                    <div class="row" style="grid-template-columns: 70px 1fr;">
+                        <label for="m5_vx">vx</label>
+                        <input id="m5_vx" type="number" step="0.0001" />
+                    </div>
+                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
+                        <label for="m5_vy">vy</label>
+                        <input id="m5_vy" type="number" step="0.0001" />
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
+    <div id="controls" class="controls">
+        <h3 class="controls-toggle">Controls (click to minimize)</h3>
+        <div class="controls-body">
+            <p><strong>W/A/S/D</strong> - Control blue object</p>
+            <p><strong>Up/Down/Left/Right</strong> - Alternative controls</p>
+            <p>Blue object is affected by gravitational forces from all moving masses.</p>
+            <p>Resize and/or move the parameters window</p>
+        </div>
+    </div>
+    <script>
+    const panel = document.getElementById('paramPanel');
+
+    if (panel) {
+        // --- 1. GAME ENGINE EVENT BLOCKER ---
+        // We only stop propagation for events that shouldn't leak to the game loop.
+        // Crucial: We DO NOT blindly block mousemove/mouseup on the panel container level anymore.
+        const engineBlockEvents = ['wheel', 'mousewheel', 'contextmenu'];
+        engineBlockEvents.forEach(eventType => {
+            panel.addEventListener(eventType, (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+        });
+
+        // Block mousedown ONLY if it's not the header (so buttons/inputs work but game doesn't fire clicks)
+        panel.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('h3')) {
+                e.stopPropagation();
+            }
+        });
+
+
+        // --- 2. THE CLEAN DRAG & DROP ENGINE ---
+        const mousedownHandler = (e) => {
+            // Only drag if clicking the h3 header
+            if (!e.target.closest('h3')) return;
+
+            e.preventDefault(); 
+            // Crucial: Stop LittleJS from reading the click on the simulation underneath while dragging
+            e.stopPropagation(); 
+
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+
+            let offsetX = e.clientX - panel.offsetLeft;
+            let offsetY = e.clientY - panel.offsetTop;
+
+            function onMouseMove(moveEvent) {
+                // Crucial fix: block the game engine from picking up coordinates while mouse travels globally
+                moveEvent.stopPropagation();
+                
+                requestAnimationFrame(() => {
+                    panel.style.left = `${moveEvent.clientX - offsetX}px`;
+                    panel.style.top = `${moveEvent.clientY - offsetY}px`;
+                });
+            }
+
+            function onMouseUp(upEvent) {
+                upEvent.stopPropagation();
+                window.removeEventListener('mousemove', onMouseMove, true);
+                window.removeEventListener('mouseup', onMouseUp, true);
+            }
+
+            // Using "true" (capture phase) ensures our window events override LittleJS globally during drag
+            window.addEventListener('mousemove', onMouseMove, true);
+            window.addEventListener('mouseup', onMouseUp, true);
+        };
+
+        panel.addEventListener("mousedown", mousedownHandler);
+    }
+
+    // --- 3. COLLAPSIBLE CONTROLS ENGINE ---
+    (function () {
+        const controls = document.getElementById('controls');
+        if (!controls) return;
+        const toggle = controls.querySelector('.controls-toggle');
+        if (!toggle) return;
+
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation(); // Stops toggle from clicking through to the game canvas
+            controls.classList.toggle('collapsed');
+            toggle.textContent = controls.classList.contains('collapsed')
+                ? 'Controls (click to expand)'
+                : 'Controls (click to minimize)';
+        });
+    })();
+</script>
 
     <!-- LittleJS Engine (CDN) -->
-    <script src="/littlejs.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/littlejsengine@1.18.19/dist/littlejs.min.js"></script>
 
     <!-- Your converted game code -->
     <script src="/littlejs-orbital-sim.js"></script>
+
 </body>
+
 </html>

@@ -28,6 +28,70 @@ let obj = {
     mass: 1,
 };
 
+function readNum(id, defaultValue=0)
+{
+    const el = document.getElementById(id);
+    if (!el) return defaultValue;
+    const v = parseFloat(el.value);
+    return Number.isFinite(v) ? v : defaultValue;
+}
+
+function setInputValue(id, v)
+{
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = (Math.abs(v) < 1e-12 ? 0 : v);
+}
+
+function updateInputsFromCurrentState()
+{
+    // Keep inputs synced to simulation state (acts like a simple state->UI binding)
+
+    setInputValue('obj_mass', obj.mass);
+
+    setInputValue('obj_x', obj.pos.x);
+    setInputValue('obj_y', obj.pos.y);
+
+    setInputValue('obj_vx', obj.vel.x);
+    setInputValue('obj_vy', obj.vel.y);
+
+    setInputValue('obj_ax', obj.ax);
+    setInputValue('obj_ay', obj.ay);
+
+    setInputValue('m1_mass', mass1.mass);
+    setInputValue('m1_x', mass1.pos.x);
+    setInputValue('m1_y', mass1.pos.y);
+
+    setInputValue('m2_mass', mass2.mass);
+    setInputValue('m2_x', mass2.pos.x);
+    setInputValue('m2_y', mass2.pos.y);
+
+    // mobile masses: also show ax/ay currently applied (after gravity+keyboard)
+    setInputValue('m3_mass', mass3.mass);
+    setInputValue('m3_x', mass3.pos.x);
+    setInputValue('m3_y', mass3.pos.y);
+    setInputValue('m3_vx', mass3.vel.x);
+    setInputValue('m3_vy', mass3.vel.y);
+    setInputValue('m3_ax', mass3.ax);
+    setInputValue('m3_ay', mass3.ay);
+
+    setInputValue('m4_mass', mass4.mass);
+    setInputValue('m4_x', mass4.pos.x);
+    setInputValue('m4_y', mass4.pos.y);
+    setInputValue('m4_vx', mass4.vel.x);
+    setInputValue('m4_vy', mass4.vel.y);
+    setInputValue('m4_ax', mass4.ax);
+    setInputValue('m4_ay', mass4.ay);
+
+    setInputValue('m5_mass', mass5.mass);
+    setInputValue('m5_x', mass5.pos.x);
+    setInputValue('m5_y', mass5.pos.y);
+    setInputValue('m5_vx', mass5.vel.x);
+    setInputValue('m5_vy', mass5.vel.y);
+    setInputValue('m5_ax', mass5.ax);
+    setInputValue('m5_ay', mass5.ay);
+}
+
 let mass1 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(255,0,0) };
 let mass2 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(0,255,0) };
 let mass3 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 255, 149) };
@@ -37,6 +101,78 @@ let mass5 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 0,
 
 let keyboardAx = 0;
 let keyboardAy = 0;
+
+let isPaused = false;
+
+function resetToUserInput()
+{
+    // Blue object (obj)
+    obj.mass = readNum('obj_mass', obj.mass);
+
+    obj.pos.set(
+        readNum('obj_x', obj.pos.x),
+        readNum('obj_y', obj.pos.y)
+    );
+
+    obj.vel.set(
+        readNum('obj_vx', obj.vel.x),
+        readNum('obj_vy', obj.vel.y)
+    );
+
+    // initial accel inputs are applied at Reset time only
+    obj.ax = readNum('obj_ax', 0);
+    obj.ay = readNum('obj_ay', 0);
+
+    // Apply the initial acceleration immediately into velocity (like a first integration step)
+    // so it meaningfully affects the trajectory.
+    obj.vel.x += obj.ax * dtScale;
+    obj.vel.y += obj.ay * dtScale;
+
+    // Static masses
+    mass1.mass = readNum('m1_mass', mass1.mass);
+    mass1.pos.set(
+        readNum('m1_x', mass1.pos.x),
+        readNum('m1_y', mass1.pos.y)
+    );
+
+    mass2.mass = readNum('m2_mass', mass2.mass);
+    mass2.pos.set(
+        readNum('m2_x', mass2.pos.x),
+        readNum('m2_y', mass2.pos.y)
+    );
+
+    // Mobile masses: read x/y/vel + initial ax/ay
+    for (const [mm, massKey] of [
+        [mass3, 'm3'],
+        [mass4, 'm4'],
+        [mass5, 'm5'],
+    ])
+    {
+        mm.mass = readNum(massKey + '_mass', mm.mass);
+        mm.pos.set(
+            readNum(massKey + '_x', mm.pos.x),
+            readNum(massKey + '_y', mm.pos.y)
+        );
+        mm.vel.set(
+            readNum(massKey + '_vx', mm.vel.x),
+            readNum(massKey + '_vy', mm.vel.y)
+        );
+
+        mm.ax = readNum(massKey + '_ax', 0);
+        mm.ay = readNum(massKey + '_ay', 0);
+
+        // apply initial accel into velocity immediately
+        mm.vel.x += mm.ax * dtScale;
+        mm.vel.y += mm.ay * dtScale;
+    }
+
+    // recompute predictions immediately
+    computePredictedPath();
+
+    // keep UI synced to the actual reset state when paused
+    // if (isPaused)
+        // updateInputsFromCurrentState();
+}
 
 // Generic lists so prediction works with N static and N moving masses.
 // - staticMasses: masses that do not change position during simulation
@@ -242,6 +378,7 @@ function computePredictedPath()
 function gameInit()
 {
     // Layout: index.html uses a 1200x800 container.
+    // Force LittleJS canvas to remain fixed-size even when the browser window is narrow.
     setCanvasFixedSize(canvasSize);
 
     // Force world units == screen pixels so object sizes/positions match index.js.
@@ -249,11 +386,12 @@ function gameInit()
     setCameraScale(1);
     setCameraPos(vec2(canvasSize.x/2, canvasSize.y/2));
 
-    // Place objects in pixel coordinates (same as index.js).
+    // Default starting state (matches current tuned setup in this file)
     obj.pos.set(canvasSize.x/2, canvasSize.y/2 - 200);
     obj.vel.set(0.23, 0);
     obj.ax = 0;
     obj.ay = 0;
+    obj.mass = 1;
 
     mass1.pos.set(canvasSize.x/2, canvasSize.y/2);
     mass1.vel.set(0, 0);
@@ -261,10 +399,7 @@ function gameInit()
     mass2.pos.set(canvasSize.x/2 + 200, canvasSize.y/2);
     mass2.vel.set(0, 0);
 
-    // Tuned velocities for more visually "cool" orbits around the 2 static masses
-    // (parameter tweaks only).
     mass3.pos.set(500.0, 400.0);
-    // Reduced tangential speeds to avoid runaway escape.
     mass3.vel.set(-0.08, 0.25);
 
     mass4.pos.set(700.0, 400.0);
@@ -273,19 +408,88 @@ function gameInit()
     mass5.pos.set(900.0, 400.0);
     mass5.vel.set(-0.08, 0.25);
 
+    // ensure ax/ay are 0 at start
+    obj.ax = 0; obj.ay = 0;
+    mass3.ax = 0; mass3.ay = 0;
+    mass4.ax = 0; mass4.ay = 0;
+    mass5.ax = 0; mass5.ay = 0;
 
+    // Wire UI buttons
+    const btnPausePlay = document.getElementById('btnPausePlay');
+    if (btnPausePlay)
+    {
+        btnPausePlay.addEventListener('click', () => {
+            isPaused = !isPaused;
+            btnPausePlay.textContent = isPaused ? 'Play' : 'Pause';
+            // when pausing, sync inputs to current live values
+            if (isPaused)
+                updateInputsFromCurrentState();
+            computePredictedPath();
+        });
+    }
 
-    computePredictedPath(futureStepsObj);
+    const btnReset = document.getElementById('btnReset');
+    if (btnReset)
+    {
+        btnReset.addEventListener('click', () => {
+            resetToUserInput();
+        });
+    }
+
+    // Populate parameter panel inputs with current state initially
+    updateInputsFromCurrentState();
+
+    computePredictedPath();
 }
 
 function gameUpdate()
 {
+    if (isPaused)
+    {
+        // keep live displayed accelerations by recomputing but do not integrate positions
+        keyboardAx = 0;
+        keyboardAy = 0;
+
+        obj.ax = 0;
+        obj.ay = 0;
+
+        for (const mm of mobileMasses)
+        {
+            mm.ax = 0;
+            mm.ay = 0;
+        }
+
+        for (const sm of staticMasses)
+        {
+            const a = calcGravityAccel(obj, sm.pos, sm.mass);
+            obj.ax += a.x;
+            obj.ay += a.y;
+        }
+        for (const mm of mobileMasses)
+        {
+            const a = calcGravityAccel(obj, mm.pos, mm.mass);
+            obj.ax += a.x;
+            obj.ay += a.y;
+        }
+
+        for (const mm of mobileMasses)
+        {
+            for (const sm of staticMasses)
+            {
+                const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
+                mm.ax += a.x;
+                mm.ay += a.y;
+            }
+        }
+
+        return;
+    }
+
     // keyboard acceleration (index.js uses -0.001 / +0.001)
     keyboardAx = 0;
     keyboardAy = 0;
+
     // WASD + Arrow keys
-    // LittleJS keyIsDown uses named keys (often matching KeyboardEvent.code / key strings).
-    // Support both common variants to ensure input works across browsers.
     const left  = keyIsDown('ArrowLeft') || keyIsDown('KeyA');
     const right = keyIsDown('ArrowRight') || keyIsDown('KeyD');
     const up    = keyIsDown('ArrowUp') || keyIsDown('KeyW');
@@ -322,15 +526,7 @@ function gameUpdate()
         obj.ay += a.y;
     }
 
-    // reset accelerations for mobiles
-    for (const mm of mobileMasses)
-    {
-        mm.ax = 0;
-        mm.ay = 0;
-    }
-
     // Apply gravitational forces to EACH mobile from static masses only
-    // (matches original index.js where mass3 only attracted by mass1+mass2)
     for (const mm of mobileMasses)
     {
         for (const sm of staticMasses)
@@ -351,9 +547,12 @@ function gameUpdate()
 
 function gameUpdatePost()
 {
-    // recompute prediction each frame (index.js does each render)
+    // Keep prediction updated and keep UI synced in realtime while playing
     computePredictedPath();
+    if (!isPaused)
+        updateInputsFromCurrentState();
 }
+
 
 
 function gameRender()
