@@ -30,8 +30,8 @@ let obj = {
 
 let mass1 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(255,0,0) };
 let mass2 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(0,255,0) };
-let mass3 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(255,255,0) };
-let mass4 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(252, 113, 0) };
+let mass3 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 255, 149) };
+let mass4 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(4, 0, 253) };
 let mass5 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 0, 0) };
 
 
@@ -46,9 +46,11 @@ const staticMasses = [mass1, mass2];
 const mobileMasses = [mass3, mass4, mass5];
 
 let futurePositions = [];
+let futureMobilePositions = []; // predicted positions for moving masses
 
-let futureSteps = 10000;     // same magnitude as index.js
-
+let futureStepsObj = 1000; // prediction steps for blue object
+let futureStepsMobiles = 1000; // prediction steps for moving masses
+let samplingConstant = 10000; // max number of segments to render for predicted paths (for performance)
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
 
@@ -111,7 +113,9 @@ function drawObjAt(pos, radius)
 
 function computePredictedPath()
 {
-    // Copy initial state
+    // Copy static initial state once for each horizon simulation
+
+    // --- Predict blue object for futureStepsObj (and also move masses along the way) ---
     const futureObj = {
         pos: obj.pos.copy(),
         vel: obj.vel.copy(),
@@ -125,7 +129,7 @@ function computePredictedPath()
         mass: sm.mass,
     }));
 
-    const futureMobileMasses = mobileMasses.map(mm => ({
+    const futureMobileMassesForObj = mobileMasses.map(mm => ({
         pos: mm.pos.copy(),
         vel: mm.vel.copy(),
         ax: 0,
@@ -136,12 +140,12 @@ function computePredictedPath()
     futurePositions = [];
     futurePositions.push(futureObj.pos.copy());
 
-    for (let i = 0; i < futureSteps; i++)
+    for (let i = 0; i < futureStepsObj; i++)
     {
         // reset accelerations
         futureObj.ax = 0;
         futureObj.ay = 0;
-        for (const mm of futureMobileMasses)
+        for (const mm of futureMobileMassesForObj)
         {
             mm.ax = 0;
             mm.ay = 0;
@@ -154,7 +158,7 @@ function computePredictedPath()
             futureObj.ax += a.x;
             futureObj.ay += a.y;
         }
-        for (const mm of futureMobileMasses)
+        for (const mm of futureMobileMassesForObj)
         {
             const a = calcGravityAccel(futureObj, mm.pos, mm.mass);
             futureObj.ax += a.x;
@@ -162,8 +166,7 @@ function computePredictedPath()
         }
 
         // (2) apply gravity to each moving mass from STATIC masses only
-        // Matches original index.js: mass3 is attracted by the two static masses.
-        for (const mm of futureMobileMasses)
+        for (const mm of futureMobileMassesForObj)
         {
             for (const sm of futureStaticMasses)
             {
@@ -174,15 +177,64 @@ function computePredictedPath()
         }
 
         // (3) integrate moving masses first
-        for (const mm of futureMobileMasses)
+        for (let mIndex = 0; mIndex < futureMobileMassesForObj.length; mIndex++)
+        {
+            const mm = futureMobileMassesForObj[mIndex];
             integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+        }
 
         // (4) integrate futureObj last
         integratePosition(futureObj.pos, futureObj.vel, vec2(futureObj.ax, futureObj.ay));
 
         futurePositions.push(futureObj.pos.copy());
     }
+
+    // --- Predict moving masses for futureStepsMobiles only (render length should be 1000) ---
+    const futureMobileMasses = mobileMasses.map(mm => ({
+        pos: mm.pos.copy(),
+        vel: mm.vel.copy(),
+        ax: 0,
+        ay: 0,
+        mass: mm.mass,
+    }));
+
+    futureMobilePositions = [];
+    for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++)
+        futureMobilePositions.push([futureMobileMasses[mIndex].pos.copy()]);
+
+    for (let i = 0; i < futureStepsMobiles; i++)
+    {
+        // reset accelerations
+        for (const mm of futureMobileMasses)
+        {
+            mm.ax = 0;
+            mm.ay = 0;
+        }
+
+        // apply gravity to moving masses from STATIC masses only
+        for (const mm of futureMobileMasses)
+        {
+            for (const sm of futureStaticMasses)
+            {
+                const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
+                mm.ax += a.x;
+                mm.ay += a.y;
+            }
+        }
+
+        // integrate moving masses
+        for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++)
+        {
+            const mm = futureMobileMasses[mIndex];
+            integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+        }
+
+        // record predicted moving positions
+        for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++)
+            futureMobilePositions[mIndex].push(futureMobileMasses[mIndex].pos.copy());
+    }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // LittleJS callbacks
@@ -209,16 +261,21 @@ function gameInit()
     mass2.pos.set(canvasSize.x/2 + 200, canvasSize.y/2);
     mass2.vel.set(0, 0);
 
+    // Tuned velocities for more visually "cool" orbits around the 2 static masses
+    // (parameter tweaks only).
     mass3.pos.set(500.0, 400.0);
-    mass3.vel.set(0.35, 0.15);
+    // Reduced tangential speeds to avoid runaway escape.
+    mass3.vel.set(-0.08, 0.25);
 
     mass4.pos.set(700.0, 400.0);
-    mass4.vel.set(0.35, 0.15);
+    mass4.vel.set(0.08, -0.25);
 
     mass5.pos.set(900.0, 400.0);
-    mass5.vel.set(0.35, 0.15);
+    mass5.vel.set(-0.08, 0.25);
 
-    computePredictedPath();
+
+
+    computePredictedPath(futureStepsObj);
 }
 
 function gameUpdate()
@@ -298,20 +355,40 @@ function gameUpdatePost()
     computePredictedPath();
 }
 
+
 function gameRender()
 {
     // Background: draw a fullscreen rect centered on the world center.
     // cameraScale=1 and cameraPos=(canvasSize/2) makes this map 1:1 to the view.
     drawRect(vec2(canvasSize.x/2, canvasSize.y/2), canvasSize, rgb(255,255,255));
 
-    // Predicted path (sample to keep it cheap)
-    const points = [];
-    const sampleStep = Math.max(1, Math.floor(futurePositions.length / 1500));
-    for (let i = 0; i < futurePositions.length; i += sampleStep)
-        points.push(futurePositions[i]);
+    // Predicted path for blue object (sample to keep it cheap)
+    {
+        const points = [];
+        const sampleStep = Math.max(1, Math.floor(futurePositions.length / samplingConstant));
+        for (let i = 0; i < futurePositions.length; i += sampleStep)
+            points.push(futurePositions[i]);
 
-    if (points.length > 1)
-        drawLineList(points, .5, rgb(0,0,1,.5), false);
+        if (points.length > 1)
+            drawLineList(points, .5, rgb(0,0,1,.5), false);
+    }
+
+    // Predicted paths for moving masses: N separate polylines
+    {
+        for (let mIndex = 0; mIndex < futureMobilePositions.length; mIndex++)
+        {
+            const list = futureMobilePositions[mIndex];
+            const sampleStep = Math.max(1, Math.floor(list.length / samplingConstant));
+            const points = [];
+            for (let i = 0; i < list.length; i += sampleStep)
+                points.push(list[i]);
+            if (points.length > 1)
+            {
+                const mm = mobileMasses[mIndex];
+                drawLineList(points, .5, mm.color, false);
+            }
+        }
+    }
 
     // Draw masses (arc radius in index.js is 20)
     drawMassAt(mass1.pos, 20, mass1.color);
