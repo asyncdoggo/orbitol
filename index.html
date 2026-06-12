@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LittleJS Gravitational Orbital Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            background-color: #222;
+            border: 2px solid #444;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
+            width: 1200px;
+            height: 800px;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #0f0;
+            font-size: 14px;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        #controls h3 {
+            margin: 0 0 10px 0;
+            color: #0ff;
+        }
+
+        #controls p {
+            margin: 5px 0;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #0f0;
+            font-size: 12px;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- LittleJS will create the canvas here -->
+        <div id="controls">
+            <h3>Controls</h3>
+            <p><strong>W/A/S/D</strong> - Control blue object</p>
+            <p><strong>Up/Down/Left/Right</strong> - Alternative controls</p>
+            <p>Blue object is affected by gravitational forces from the three masses.</p>
+            <p><strong>Red & Green</strong> - Fixed massive bodies</p>
+            <p><strong>Yellow</strong> - Mobile body (also affected by gravity)</p>
+            <p>The blue dotted path shows the predicted trajectory.</p>
+        </div>
+        <div id="info">
+            <p>Gravitational Orbital Simulation</p>
+            <p>Powered by LittleJS</p>
+        </div>
+    </div>
+
+    <!-- LittleJS Engine (CDN) -->
+    <script src="/littlejs.js"></script>
+
+    <!-- Your converted game code -->
+    <script src="/littlejs-orbital-sim.js"></script>
+</body>
+</html>
