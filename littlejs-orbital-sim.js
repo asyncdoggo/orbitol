@@ -20,6 +20,8 @@ const dtScale = 2; // match index.js step integration more closely
 
 let canvasSize = vec2(1200, 800);
 
+let p1 = true;
+
 let obj = {
     pos: vec2(),
     vel: vec2(),
@@ -90,8 +92,9 @@ function updateInputsFromCurrentState() {
 }
 
 function resetToUserInput()
-{    
-    // Blue object (obj)
+{
+    // Restore simulation state from UI inputs.
+
     obj.mass = readNum('obj_mass', obj.mass);
 
     obj.pos.set(
@@ -108,9 +111,7 @@ function resetToUserInput()
     obj.ax = readNum('obj_ax', 0);
     obj.ay = readNum('obj_ay', 0);
 
-    // Apply the initial acceleration immediately into velocity (like a first
- 
-    // so it meaningfully affects the trajectory.
+    // apply initial accel into velocity immediately
     obj.vel.x += obj.ax * dtScale;
     obj.vel.y += obj.ay * dtScale;
 
@@ -144,12 +145,12 @@ function resetToUserInput()
             readNum(massKey + '_vy', mm.vel.y)
         );
 
-        mm.ax = readNum(massKey + '_ax', 0);
-        mm.ay = readNum(massKey + '_ay', 0);
+        mm.ax = readNum(massKey + '_ax', mm.ax);
+        mm.ay = readNum(massKey + '_ay', mm.ay);
+        
 
-        // apply initial accel into velocity immediately
-        mm.vel.x += mm.ax * dtScale;
-        mm.vel.y += mm.ay * dtScale;
+        // mm.vel.x += mm.ax * dtScale;
+        // mm.vel.y += mm.ay * dtScale;
     }
 }
 
@@ -171,8 +172,8 @@ function reseedSimulation() {
     setInputValue('obj_x', canvasSize.x/2);
     setInputValue('obj_y', canvasSize.y/2 - 200);
 
-    setInputValue('obj_vx', 0.23);
-    setInputValue('obj_vy', 0);
+    setInputValue('obj_vx', 0.2355);
+    setInputValue('obj_vy', -0.1);
 
     setInputValue('obj_ax', 0);
     setInputValue('obj_ay', 0);
@@ -189,7 +190,7 @@ function reseedSimulation() {
     setInputValue('m3_mass', 0.00000001);
     setInputValue('m3_x', 497.00);
     setInputValue('m3_y', 400.0);
-    setInputValue('m3_vx', -0.0812);
+    setInputValue('m3_vx', -0.0536);
     setInputValue('m3_vy', 0.25);
     setInputValue('m3_ax', 0);
     setInputValue('m3_ay', 0);
@@ -197,16 +198,16 @@ function reseedSimulation() {
     setInputValue('m4_mass', 0.00000001);
     setInputValue('m4_x', 700.0);
     setInputValue('m4_y', 400.0);
-    setInputValue('m4_vx', 0.2647);
-    setInputValue('m4_vy', 0.4);
+    setInputValue('m4_vx', 0.4406);
+    setInputValue('m4_vy', 0.2971);
     setInputValue('m4_ax', 0);
     setInputValue('m4_ay', 0);
 
     setInputValue('m5_mass', 0.00000001);
     setInputValue('m5_x', 900.0);
     setInputValue('m5_y', 400.0);
-    setInputValue('m5_vx', -0.0437);
-    setInputValue('m5_vy', 0.259);
+    setInputValue('m5_vx', 0.1898);
+    setInputValue('m5_vy', 0.2758);
     setInputValue('m5_ax', 0);
     setInputValue('m5_ay', 0);
 }
@@ -223,8 +224,8 @@ let futurePositions = [];
 let futureMobilePositions = []; // predicted positions for moving masses
 
 let futureStepsObj = 1000; // prediction steps for blue object
-let futureStepsMobiles = 20000; // prediction steps for moving masses
-let samplingConstant = 5000; // max number of segments to render for predicted paths (for performance)
+let futureStepsMobiles = 5000; // prediction steps for moving masses
+let samplingConstant = 2000; // max number of segments to render for predicted paths (for performance)
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
 
@@ -450,54 +451,11 @@ function gameInit() {
 
     // Populate parameter panel inputs with current state initially
     reseedSimulation()
-    // updateInputsFromCurrentState();
-    computePredictedPath();
 }
 
 function gameUpdate() {
     if (isPaused) {
-        // keep live displayed accelerations by recomputing but do not integrate positions
-        keyboardAx = 0;
-        keyboardAy = 0;
-
-        obj.ax = 0;
-        obj.ay = 0;
-
-        for (const mm of mobileMasses) {
-            mm.ax = 0;
-            mm.ay = 0;
-        }
-
-        for (const sm of staticMasses) {
-            const a = calcGravityAccel(obj, sm.pos, sm.mass);
-            obj.ax += a.x;
-            obj.ay += a.y;
-        }
-        for (const mm of mobileMasses) {
-            const a = calcGravityAccel(obj, mm.pos, mm.mass);
-            obj.ax += a.x;
-            obj.ay += a.y;
-        }
-
-        for (const mm of mobileMasses) {
-            for (const sm of staticMasses) {
-                const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
-                mm.ax += a.x;
-                mm.ay += a.y;
-            }
-        }
-
-        for (const sm1 of staticMasses) {
-            for (const sm2 of staticMasses) {
-                if (sm1 !== sm2) {
-                    const a = calcGravityAccel(sm1, sm2.pos, sm2.mass)
-                    sm1.ax += a.x;
-                    sm1.ay += a.y;
-                }
-            }
-        }
-
-        resetToUserInput()
+        resetToUserInput();
         return;
     }
 
@@ -568,9 +526,9 @@ function gameUpdate() {
 
 function gameUpdatePost() {
     // Keep prediction updated and keep UI synced in realtime while playing
-    computePredictedPath();
     if (!isPaused)
         updateInputsFromCurrentState();
+    computePredictedPath();
 
 }
 
