@@ -13,7 +13,7 @@ const DIST_MIN = 10;     // minimum distance clamp to avoid singularities
 
 // "index.js" uses per-interval (setInterval 6ms). LittleJS uses fixed timestep.
 // The math in index.js is effectively scale-less; we keep it as similar as possible.
-const dtScale = 2; // start as 1; tweak later if needed
+const dtScale = 2; // match index.js step integration more closely
 
 ///////////////////////////////////////////////////////////////////////////////
 // simulation state
@@ -28,23 +28,20 @@ let obj = {
     mass: 1,
 };
 
-function readNum(id, defaultValue=0)
-{
+function readNum(id, defaultValue = 0) {
     const el = document.getElementById(id);
     if (!el) return defaultValue;
     const v = parseFloat(el.value);
     return Number.isFinite(v) ? v : defaultValue;
 }
 
-function setInputValue(id, v)
-{
+function setInputValue(id, v) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.value = (Math.abs(v) < 1e-12 ? 0 : v);
+    el.value = v;
 }
 
-function updateInputsFromCurrentState()
-{
+function updateInputsFromCurrentState() {
     // Keep inputs synced to simulation state (acts like a simple state->UI binding)
 
     setInputValue('obj_mass', obj.mass);
@@ -92,18 +89,6 @@ function updateInputsFromCurrentState()
     setInputValue('m5_ay', mass5.ay);
 }
 
-let mass1 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(255,0,0) };
-let mass2 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(0,255,0) };
-let mass3 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 255, 149) };
-let mass4 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(4, 0, 253) };
-let mass5 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 0, 0) };
-
-
-let keyboardAx = 0;
-let keyboardAy = 0;
-
-let isPaused = true;
-
 function resetToUserInput()
 {    
     // Blue object (obj)
@@ -123,7 +108,8 @@ function resetToUserInput()
     obj.ax = readNum('obj_ax', 0);
     obj.ay = readNum('obj_ay', 0);
 
-    // Apply the initial acceleration immediately into velocity (like a first integration step)
+    // Apply the initial acceleration immediately into velocity (like a first
+ 
     // so it meaningfully affects the trajectory.
     obj.vel.x += obj.ax * dtScale;
     obj.vel.y += obj.ay * dtScale;
@@ -165,14 +151,66 @@ function resetToUserInput()
         mm.vel.x += mm.ax * dtScale;
         mm.vel.y += mm.ay * dtScale;
     }
-
-    // recompute predictions immediately
-    computePredictedPath();
-
-    // keep UI synced to the actual reset state when paused
-    // if (isPaused)
-        // updateInputsFromCurrentState();
 }
+
+let mass1 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(255, 0, 0) };
+let mass2 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 100, color: rgb(0, 255, 0) };
+let mass3 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 255, 149) };
+let mass4 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(4, 0, 253) };
+let mass5 = { pos: vec2(), vel: vec2(), ax: 0, ay: 0, mass: 50, color: rgb(0, 0, 0) };
+
+
+let keyboardAx = 0;
+let keyboardAy = 0;
+
+let isPaused = true;
+
+
+function reseedSimulation() {
+    setInputValue('obj_mass', 1);
+    setInputValue('obj_x', canvasSize.x/2);
+    setInputValue('obj_y', canvasSize.y/2 - 200);
+
+    setInputValue('obj_vx', 0.23);
+    setInputValue('obj_vy', 0);
+
+    setInputValue('obj_ax', 0);
+    setInputValue('obj_ay', 0);
+
+    setInputValue('m1_mass', 100);
+    setInputValue('m1_x', canvasSize.x / 2);
+    setInputValue('m1_y', canvasSize.y / 2);
+
+    setInputValue('m2_mass', 100);
+    setInputValue('m2_x', canvasSize.x / 2 + 200);
+    setInputValue('m2_y', canvasSize.y / 2);
+
+    // mobile masses: also show ax/ay currently applied (after gravity+keyboard)
+    setInputValue('m3_mass', 0.00000001);
+    setInputValue('m3_x', 497.00);
+    setInputValue('m3_y', 400.0);
+    setInputValue('m3_vx', -0.0812);
+    setInputValue('m3_vy', 0.25);
+    setInputValue('m3_ax', 0);
+    setInputValue('m3_ay', 0);
+
+    setInputValue('m4_mass', 0.00000001);
+    setInputValue('m4_x', 700.0);
+    setInputValue('m4_y', 400.0);
+    setInputValue('m4_vx', 0.2647);
+    setInputValue('m4_vy', 0.4);
+    setInputValue('m4_ax', 0);
+    setInputValue('m4_ay', 0);
+
+    setInputValue('m5_mass', 0.00000001);
+    setInputValue('m5_x', 900.0);
+    setInputValue('m5_y', 400.0);
+    setInputValue('m5_vx', -0.0437);
+    setInputValue('m5_vy', 0.259);
+    setInputValue('m5_ax', 0);
+    setInputValue('m5_ay', 0);
+}
+
 
 // Generic lists so prediction works with N static and N moving masses.
 // - staticMasses: masses that do not change position during simulation
@@ -185,18 +223,17 @@ let futurePositions = [];
 let futureMobilePositions = []; // predicted positions for moving masses
 
 let futureStepsObj = 1000; // prediction steps for blue object
-let futureStepsMobiles = 1000; // prediction steps for moving masses
-let samplingConstant = 10000; // max number of segments to render for predicted paths (for performance)
+let futureStepsMobiles = 20000; // prediction steps for moving masses
+let samplingConstant = 5000; // max number of segments to render for predicted paths (for performance)
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
 
-function calcGravityAccel(target, sourcePos, sourceMass)
-{
+function calcGravityAccel(target, sourcePos, sourceMass) {
     // index.js: dx = mass.x - obj.x, dy = mass.y - obj.y
     // LittleJS world Y axis is normal (up is +Y), so no inversion hack is needed.
     const dx = sourcePos.x - target.pos.x;
     const dy = sourcePos.y - target.pos.y;
-    let distance = (dx*dx + dy*dy)**.5;
+    let distance = (dx * dx + dy * dy) ** .5;
     if (distance < DIST_MIN) distance = DIST_MIN;
 
     const force = (G * target.mass * sourceMass) / (distance * distance);
@@ -207,12 +244,11 @@ function calcGravityAccel(target, sourcePos, sourceMass)
     return vec2(ax, ay);
 }
 
-function calcMobileGravAccel(mobile, sourcePos, sourceMass)
-{
+function calcMobileGravAccel(mobile, sourcePos, sourceMass) {
     // Same as above but mobile has its own mass
     const dx = sourcePos.x - mobile.pos.x;
     const dy = sourcePos.y - mobile.pos.y;
-    let distance = (dx*dx + dy*dy)**.5;
+    let distance = (dx * dx + dy * dy) ** .5;
     if (distance < DIST_MIN) distance = DIST_MIN;
 
     const force = (G * mobile.mass * sourceMass) / (distance * distance);
@@ -221,8 +257,7 @@ function calcMobileGravAccel(mobile, sourcePos, sourceMass)
     return vec2(ax, ay);
 }
 
-function integratePosition(p, v, a)
-{
+function integratePosition(p, v, a) {
     // Mirrors index.js updatePosition:
     // mass.vx += mass.ax; mass.x += mass.vx;
     // With LittleJS dt, we approximate by scaling acceleration and velocity.
@@ -232,23 +267,20 @@ function integratePosition(p, v, a)
     p.y += v.y * dtScale;
 }
 
-function drawMassAt(pos, radius, color)
-{
+function drawMassAt(pos, radius, color) {
     // LittleJS drawCircle(size) uses diameter.
     // index.js uses arc(..., radius).
     // So pass diameter = radius * 2.
-    
+
     drawCircle(pos, radius * 2, color);
 }
 
-function drawObjAt(pos, radius)
-{
+function drawObjAt(pos, radius) {
     // index.js arc radius is "radius"; drawCircle expects diameter
     drawCircle(pos, radius * 2, BLUE);
 }
 
-function computePredictedPath()
-{
+function computePredictedPath() {
     // Copy static initial state once for each horizon simulation
 
     // --- Predict blue object for futureStepsObj (and also move masses along the way) ---
@@ -276,45 +308,50 @@ function computePredictedPath()
     futurePositions = [];
     futurePositions.push(futureObj.pos.copy());
 
-    for (let i = 0; i < futureStepsObj; i++)
-    {
+    for (let i = 0; i < futureStepsObj; i++) {
         // reset accelerations
         futureObj.ax = 0;
         futureObj.ay = 0;
-        for (const mm of futureMobileMassesForObj)
-        {
+        for (const mm of futureMobileMassesForObj) {
             mm.ax = 0;
             mm.ay = 0;
         }
 
         // (1) apply gravity from ALL masses to futureObj
-        for (const sm of futureStaticMasses)
-        {
+        for (const sm of futureStaticMasses) {
             const a = calcGravityAccel(futureObj, sm.pos, sm.mass);
             futureObj.ax += a.x;
             futureObj.ay += a.y;
         }
-        for (const mm of futureMobileMassesForObj)
-        {
+        for (const mm of futureMobileMassesForObj) {
             const a = calcGravityAccel(futureObj, mm.pos, mm.mass);
             futureObj.ax += a.x;
             futureObj.ay += a.y;
         }
 
         // (2) apply gravity to each moving mass from STATIC masses only
-        for (const mm of futureMobileMassesForObj)
-        {
-            for (const sm of futureStaticMasses)
-            {
+        for (const mm of futureMobileMassesForObj) {
+            for (const sm of futureStaticMasses) {
                 const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
                 mm.ax += a.x;
                 mm.ay += a.y;
             }
         }
 
+        for (const sm1 of futureMobileMassesForObj) {
+            for (const sm2 of futureMobileMassesForObj) {
+                if (sm1 !== sm2) {
+                    const a = calcGravityAccel(sm1, sm2.pos, sm2.mass)
+                    sm1.ax += a.x;
+                    sm1.ay += a.y;
+                }
+            }
+        }
+
+
+
         // (3) integrate moving masses first
-        for (let mIndex = 0; mIndex < futureMobileMassesForObj.length; mIndex++)
-        {
+        for (let mIndex = 0; mIndex < futureMobileMassesForObj.length; mIndex++) {
             const mm = futureMobileMassesForObj[mIndex];
             integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
         }
@@ -338,29 +375,34 @@ function computePredictedPath()
     for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++)
         futureMobilePositions.push([futureMobileMasses[mIndex].pos.copy()]);
 
-    for (let i = 0; i < futureStepsMobiles; i++)
-    {
+    for (let i = 0; i < futureStepsMobiles; i++) {
         // reset accelerations
-        for (const mm of futureMobileMasses)
-        {
+        for (const mm of futureMobileMasses) {
             mm.ax = 0;
             mm.ay = 0;
         }
 
         // apply gravity to moving masses from STATIC masses only
-        for (const mm of futureMobileMasses)
-        {
-            for (const sm of futureStaticMasses)
-            {
+        for (const mm of futureMobileMasses) {
+            for (const sm of futureStaticMasses) {
                 const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
                 mm.ax += a.x;
                 mm.ay += a.y;
             }
         }
 
+        for (const sm1 of futureMobileMasses) {
+            for (const sm2 of futureMobileMasses) {
+                if (sm1 !== sm2) {
+                    const a = calcGravityAccel(sm1, sm2.pos, sm2.mass)
+                    sm1.ax += a.x;
+                    sm1.ay += a.y;
+                }
+            }
+        }
+
         // integrate moving masses
-        for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++)
-        {
+        for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++) {
             const mm = futureMobileMasses[mIndex];
             integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
         }
@@ -375,8 +417,7 @@ function computePredictedPath()
 ///////////////////////////////////////////////////////////////////////////////
 // LittleJS callbacks
 
-function gameInit()
-{
+function gameInit() {
     // Layout: index.html uses a 1200x800 container.
     // Force LittleJS canvas to remain fixed-size even when the browser window is narrow.
     setCanvasFixedSize(canvasSize);
@@ -384,40 +425,12 @@ function gameInit()
     // Force world units == screen pixels so object sizes/positions match index.js.
     // LittleJS camera converts world->screen via cameraScale, so set to 1 and center via cameraPos.
     setCameraScale(1);
-    setCameraPos(vec2(canvasSize.x/2, canvasSize.y/2));
+    setCameraPos(vec2(canvasSize.x / 2, canvasSize.y / 2));
 
-    // Default starting state (matches current tuned setup in this file)
-    obj.pos.set(canvasSize.x/2, canvasSize.y/2 - 200);
-    obj.vel.set(0.23, 0);
-    obj.ax = 0;
-    obj.ay = 0;
-    obj.mass = 1;
-
-    mass1.pos.set(canvasSize.x/2, canvasSize.y/2);
-    mass1.vel.set(0, 0);
-
-    mass2.pos.set(canvasSize.x/2 + 200, canvasSize.y/2);
-    mass2.vel.set(0, 0);
-
-    mass3.pos.set(500.0, 400.0);
-    mass3.vel.set(-0.08, 0.25);
-
-    mass4.pos.set(700.0, 400.0);
-    mass4.vel.set(0.08, -0.25);
-
-    mass5.pos.set(900.0, 400.0);
-    mass5.vel.set(-0.08, 0.25);
-
-    // ensure ax/ay are 0 at start
-    obj.ax = 0; obj.ay = 0;
-    mass3.ax = 0; mass3.ay = 0;
-    mass4.ax = 0; mass4.ay = 0;
-    mass5.ax = 0; mass5.ay = 0;
 
     // Wire UI buttons
     const btnPausePlay = document.getElementById('btnPausePlay');
-    if (btnPausePlay)
-    {
+    if (btnPausePlay) {
         btnPausePlay.addEventListener('click', () => {
             isPaused = !isPaused;
             btnPausePlay.textContent = isPaused ? 'Play' : 'Pause';
@@ -429,23 +442,20 @@ function gameInit()
     }
 
     const btnReset = document.getElementById('btnReset');
-    if (btnReset)
-    {
+    if (btnReset) {
         btnReset.addEventListener('click', () => {
-            resetToUserInput();
+            reseedSimulation();
         });
     }
 
     // Populate parameter panel inputs with current state initially
-    updateInputsFromCurrentState();
-
+    reseedSimulation()
+    // updateInputsFromCurrentState();
     computePredictedPath();
 }
 
-function gameUpdate()
-{
-    if (isPaused)
-    {
+function gameUpdate() {
+    if (isPaused) {
         // keep live displayed accelerations by recomputing but do not integrate positions
         keyboardAx = 0;
         keyboardAy = 0;
@@ -453,34 +463,40 @@ function gameUpdate()
         obj.ax = 0;
         obj.ay = 0;
 
-        for (const mm of mobileMasses)
-        {
+        for (const mm of mobileMasses) {
             mm.ax = 0;
             mm.ay = 0;
         }
 
-        for (const sm of staticMasses)
-        {
+        for (const sm of staticMasses) {
             const a = calcGravityAccel(obj, sm.pos, sm.mass);
             obj.ax += a.x;
             obj.ay += a.y;
         }
-        for (const mm of mobileMasses)
-        {
+        for (const mm of mobileMasses) {
             const a = calcGravityAccel(obj, mm.pos, mm.mass);
             obj.ax += a.x;
             obj.ay += a.y;
         }
 
-        for (const mm of mobileMasses)
-        {
-            for (const sm of staticMasses)
-            {
+        for (const mm of mobileMasses) {
+            for (const sm of staticMasses) {
                 const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
                 mm.ax += a.x;
                 mm.ay += a.y;
             }
         }
+
+        for (const sm1 of staticMasses) {
+            for (const sm2 of staticMasses) {
+                if (sm1 !== sm2) {
+                    const a = calcGravityAccel(sm1, sm2.pos, sm2.mass)
+                    sm1.ax += a.x;
+                    sm1.ay += a.y;
+                }
+            }
+        }
+
         resetToUserInput()
         return;
     }
@@ -490,10 +506,10 @@ function gameUpdate()
     keyboardAy = 0;
 
     // WASD + Arrow keys
-    const left  = keyIsDown('ArrowLeft') || keyIsDown('KeyA');
+    const left = keyIsDown('ArrowLeft') || keyIsDown('KeyA');
     const right = keyIsDown('ArrowRight') || keyIsDown('KeyD');
-    const up    = keyIsDown('ArrowUp') || keyIsDown('KeyW');
-    const down  = keyIsDown('ArrowDown') || keyIsDown('KeyS');
+    const up = keyIsDown('ArrowUp') || keyIsDown('KeyW');
+    const down = keyIsDown('ArrowDown') || keyIsDown('KeyS');
 
     if (left) keyboardAx = -0.001;
     else if (right) keyboardAx = 0.001;
@@ -506,34 +522,39 @@ function gameUpdate()
     obj.ay = keyboardAy;
 
     // reset accelerations for mobiles
-    for (const mm of mobileMasses)
-    {
+    for (const mm of mobileMasses) {
         mm.ax = 0;
         mm.ay = 0;
     }
 
     // Apply gravitational forces to obj from ALL masses
-    for (const sm of staticMasses)
-    {
+    for (const sm of staticMasses) {
         const a = calcGravityAccel(obj, sm.pos, sm.mass);
         obj.ax += a.x;
         obj.ay += a.y;
     }
-    for (const mm of mobileMasses)
-    {
+    for (const mm of mobileMasses) {
         const a = calcGravityAccel(obj, mm.pos, mm.mass);
         obj.ax += a.x;
         obj.ay += a.y;
     }
 
     // Apply gravitational forces to EACH mobile from static masses only
-    for (const mm of mobileMasses)
-    {
-        for (const sm of staticMasses)
-        {
+    for (const mm of mobileMasses) {
+        for (const sm of staticMasses) {
             const a = calcMobileGravAccel(mm, sm.pos, sm.mass);
             mm.ax += a.x;
             mm.ay += a.y;
+        }
+    }
+
+    for (const sm1 of mobileMasses) {
+        for (const sm2 of mobileMasses) {
+            if (sm1 !== sm2) {
+                const a = calcGravityAccel(sm1, sm2.pos, sm2.mass)
+                sm1.ax += a.x;
+                sm1.ay += a.y;
+            }
         }
     }
 
@@ -545,8 +566,7 @@ function gameUpdate()
     integratePosition(obj.pos, obj.vel, vec2(obj.ax, obj.ay));
 }
 
-function gameUpdatePost()
-{
+function gameUpdatePost() {
     // Keep prediction updated and keep UI synced in realtime while playing
     computePredictedPath();
     if (!isPaused)
@@ -556,11 +576,10 @@ function gameUpdatePost()
 
 
 
-function gameRender()
-{
+function gameRender() {
     // Background: draw a fullscreen rect centered on the world center.
     // cameraScale=1 and cameraPos=(canvasSize/2) makes this map 1:1 to the view.
-    drawRect(vec2(canvasSize.x/2, canvasSize.y/2), canvasSize, rgb(255,255,255));
+    drawRect(vec2(canvasSize.x / 2, canvasSize.y / 2), canvasSize, rgb(255, 255, 255));
 
     // Predicted path for blue object (sample to keep it cheap)
     {
@@ -570,7 +589,7 @@ function gameRender()
             points.push(futurePositions[i]);
 
         if (points.length > 1)
-            drawLineList(points, .5, rgb(0,0,1,.5), false);
+            drawLineList(points, .5, rgb(0, 0, 1, .5), false);
     }
 
     // Predicted paths for moving masses: N separate polylines
@@ -588,21 +607,31 @@ function gameRender()
                 drawLineList(points, .5, mm.color, false);
             }
         }
+        // let mIndexes = [0, 1, 2];
+        // for (let mIndex in mIndexes) {
+
+        //     const list = futureMobilePositions[mIndex];
+        //     const sampleStep = Math.max(1, Math.floor(list.length / samplingConstant));
+        //     const points = [];
+        //     for (let i = 0; i < list.length; i += sampleStep)
+        //         points.push(list[i]);
+        //     if (points.length > 1) {
+        //         const mm = mobileMasses[mIndex];
+        //         drawLineList(points, .5, mm.color, false);
+        //     }
+        // }
     }
 
-    // Draw masses (arc radius in index.js is 20)
     drawMassAt(mass1.pos, 20, mass1.color);
     drawMassAt(mass2.pos, 20, mass2.color);
     drawMassAt(mass3.pos, 20, mass3.color);
     drawMassAt(mass4.pos, 20, mass4.color);
     drawMassAt(mass5.pos, 20, mass5.color);
 
-    // Draw object (arc radius in index.js is 10)
     drawObjAt(obj.pos, 10);
 }
 
-function gameRenderPost()
-{
+function gameRenderPost() {
     // no-op
 }
 
