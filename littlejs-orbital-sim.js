@@ -105,7 +105,7 @@ let keyboardAy = 0;
 let isPaused = true;
 
 function resetToUserInput()
-{
+{    
     // Blue object (obj)
     obj.mass = readNum('obj_mass', obj.mass);
 
@@ -481,7 +481,7 @@ function gameUpdate()
                 mm.ay += a.y;
             }
         }
-
+        resetToUserInput()
         return;
     }
 
@@ -551,6 +551,7 @@ function gameUpdatePost()
     computePredictedPath();
     if (!isPaused)
         updateInputsFromCurrentState();
+
 }
 
 
