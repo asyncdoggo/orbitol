@@ -25,6 +25,8 @@
             <div class="btnRow">
                 <button id="btnPausePlay" type="button">Play</button>
                 <button id="btnReset" type="button">Reset</button>
+                <button id="btnSave" type="button">Save</button>
+                <button id="btnLoad" type="button">Load</button>
             </div>
 
             <div class="subTitle">Body Parameters</div>
@@ -76,186 +78,14 @@
                 </div>
             </div>
 
-            <div class="massName">Static Masses</div>
-            <div class="massName" style="margin-top:6px;">mass1 (red)</div>
-            <div class="twoCol">
-                <div>
-                    <div class="velAccLabel">mass</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m1_mass"> </label>
-                        <input id="m1_mass" type="number" step="0.01" />
-                    </div>
-                </div>
-                <div>
-                    <div class="velAccLabel">pos (x,y)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m1_x">x</label>
-                        <input id="m1_x" type="number" step="0.1" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m1_y">y</label>
-                        <input id="m1_y" type="number" step="0.1" />
-                    </div>
-                </div>
+            <div class="subTitle">Bodies (dynamic)</div>
+
+            <div class="btnRow" style="margin-top:8px;">
+                <button id="btnAddStaticMass" type="button">Add Static Mass</button>
+                <button id="btnAddMobileMass" type="button">Add Mobile Mass</button>
             </div>
 
-            <div class="massName" style="margin-top:10px;">mass2 (green)</div>
-            <div class="twoCol">
-                <div>
-                    <div class="velAccLabel">mass</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m2_mass"> </label>
-                        <input id="m2_mass" type="number" step="0.01" />
-                    </div>
-                </div>
-                <div>
-                    <div class="velAccLabel">pos (x,y)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m2_x">x</label>
-                        <input id="m2_x" type="number" step="0.1" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m2_y">y</label>
-                        <input id="m2_y" type="number" step="0.1" />
-                    </div>
-                </div>
-            </div>
-
-            <div class="massName" style="margin-top:10px;">Mobile Masses</div>
-
-            <div class="massName" style="margin-top:6px;">mass3</div>
-            <div class="twoCol">
-                <div>
-                    <div class="velAccLabel">mass</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m3_mass"> </label>
-                        <input id="m3_mass" type="number" step="0.01" />
-                    </div>
-                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m3_ax">ax</label>
-                        <input id="m3_ax" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m3_ay">ay</label>
-                        <input id="m3_ay" type="number" step="0.0001" />
-                    </div>
-                </div>
-                <div>
-                    <div class="velAccLabel">pos (x,y)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m3_x">x</label>
-                        <input id="m3_x" type="number" step="0.1" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m3_y">y</label>
-                        <input id="m3_y" type="number" step="0.1" />
-                    </div>
-                </div>
-            </div>
-            <div class="twoCol" style="margin-top:10px;">
-                <div>
-                    <div class="velAccLabel">vel (vx,vy)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m3_vx">vx</label>
-                        <input id="m3_vx" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m3_vy">vy</label>
-                        <input id="m3_vy" type="number" step="0.0001" />
-                    </div>
-                </div>
-                <div></div>
-            </div>
-
-            <div class="massName" style="margin-top:12px;">mass4</div>
-            <div class="twoCol">
-                <div>
-                    <div class="velAccLabel">mass</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m4_mass"> </label>
-                        <input id="m4_mass" type="number" step="0.01" />
-                    </div>
-                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m4_ax">ax</label>
-                        <input id="m4_ax" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m4_ay">ay</label>
-                        <input id="m4_ay" type="number" step="0.0001" />
-                    </div>
-                </div>
-                <div>
-                    <div class="velAccLabel">pos (x,y)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m4_x">x</label>
-                        <input id="m4_x" type="number" step="0.1" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m4_y">y</label>
-                        <input id="m4_y" type="number" step="0.1" />
-                    </div>
-                </div>
-            </div>
-            <div class="twoCol" style="margin-top:10px;">
-                <div>
-                    <div class="velAccLabel">vel (vx,vy)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m4_vx">vx</label>
-                        <input id="m4_vx" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m4_vy">vy</label>
-                        <input id="m4_vy" type="number" step="0.0001" />
-                    </div>
-                </div>
-                <div></div>
-            </div>
-
-            <div class="massName" style="margin-top:12px;">mass5</div>
-            <div class="twoCol">
-                <div>
-                    <div class="velAccLabel">mass</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m5_mass"> </label>
-                        <input id="m5_mass" type="number" step="0.01" />
-                    </div>
-                    <div class="velAccLabel" style="margin-top:8px;">acc (ax,ay)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m5_ax">ax</label>
-                        <input id="m5_ax" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m5_ay">ay</label>
-                        <input id="m5_ay" type="number" step="0.0001" />
-                    </div>
-                </div>
-                <div>
-                    <div class="velAccLabel">pos (x,y)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m5_x">x</label>
-                        <input id="m5_x" type="number" step="0.1" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m5_y">y</label>
-                        <input id="m5_y" type="number" step="0.1" />
-                    </div>
-                </div>
-            </div>
-            <div class="twoCol" style="margin-top:10px;">
-                <div>
-                    <div class="velAccLabel">vel (vx,vy)</div>
-                    <div class="row" style="grid-template-columns: 70px 1fr;">
-                        <label for="m5_vx">vx</label>
-                        <input id="m5_vx" type="number" step="0.0001" />
-                    </div>
-                    <div class="row" style="grid-template-columns: 70px 1fr; margin-top:6px;">
-                        <label for="m5_vy">vy</label>
-                        <input id="m5_vy" type="number" step="0.0001" />
-                    </div>
-                </div>
-            </div>
+            <div id="massesList" style="margin-top:10px;"></div>
 
         </div>
     </div>

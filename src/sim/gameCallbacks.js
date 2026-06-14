@@ -2,21 +2,17 @@
 
 import * as state from './state.js';
 import { integratePosition } from './math.js';
-import { updateInputsFromCurrentState, resetToUserInput, reseedSimulation } from './ui.js';
+import { updateInputsFromCurrentState, resetToUserInput, reseedSimulation, rerenderMassCards, wireMassButtons, saveSimulationToLocalStorage, restoreSimulationFromLocalStorage } from './ui.js';
 import { computePredictedPath } from './prediction.js';
 import { setCanvasFixedSize, setCameraScale, setCameraPos, vec2, drawRect, rgb, drawLineList, drawCircle, BLUE, keyIsDown  } from 'littlejsengine';
 import {
   obj,
-  staticMasses,
-  mobileMasses,
   canvasSize,
   futurePositions,
   futureMobilePositions,
-  mass1,
-  mass2,
-  mass3,
-  mass4,
-  mass5,
+  getStaticMasses,
+  getMobileMasses,
+  samplingConstant
 } from './state.js';
 
 function drawObjAt(pos, radius) {
@@ -28,6 +24,9 @@ export function gameInit() {
 
   setCameraScale(1);
   setCameraPos(vec2(canvasSize.x / 2, canvasSize.y / 2));
+
+  wireMassButtons();
+  rerenderMassCards();
 
   const btnPausePlay = document.getElementById('btnPausePlay');
   if (btnPausePlay) {
@@ -47,6 +46,21 @@ export function gameInit() {
     });
   }
 
+  const btnSave = document.getElementById('btnSave');
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      saveSimulationToLocalStorage();
+    });
+  }
+
+  const btnLoad = document.getElementById('btnLoad');
+  if (btnLoad) {
+    btnLoad.addEventListener('click', () => {
+      const ok = restoreSimulationFromLocalStorage();
+      if (ok) computePredictedPath();
+    });
+  }
+
   reseedSimulation(state.canvasSize);
 }
 
@@ -55,6 +69,10 @@ export function gameUpdate() {
     resetToUserInput();
     return;
   }
+
+  // Recompute derived lists each frame (arbitrary number of masses).
+  const staticMasses = getStaticMasses();
+  const mobileMasses = getMobileMasses();
 
   state.setKeyboard(0, 0);
 
@@ -143,36 +161,40 @@ export function gameUpdatePost() {
 }
 
 export function gameRender() {
+  const staticMasses = getStaticMasses();
+  const mobileMasses = getMobileMasses();
+
   drawRect(vec2(canvasSize.x / 2, canvasSize.y / 2), canvasSize, rgb(255, 255, 255));
 
   // future blue object path
   {
     const points = [];
-    const sampleStep = Math.max(1, Math.floor(futurePositions.length / state.samplingConstant));
+    const sampleStep = Math.max(1, Math.floor(futurePositions.length / samplingConstant));
     for (let i = 0; i < futurePositions.length; i += sampleStep) points.push(futurePositions[i]);
     if (points.length > 1) drawLineList(points, 0.5, rgb(0, 0, 1, 0.5), false);
   }
 
-  // future mobile paths
+  // future mobile paths (index into current mobile list)
   {
     for (let mIndex = 0; mIndex < futureMobilePositions.length; mIndex++) {
       const list = futureMobilePositions[mIndex];
-      const sampleStep = Math.max(1, Math.floor(list.length / state.samplingConstant));
+      const sampleStep = Math.max(1, Math.floor(list.length / samplingConstant));
       const points = [];
       for (let i = 0; i < list.length; i += sampleStep) points.push(list[i]);
 
       if (points.length > 1) {
         const mm = mobileMasses[mIndex];
-        drawLineList(points, 0.5, mm.color, false);
+        if (mm) drawLineList(points, 0.5, mm.color, false);
       }
     }
   }
 
-  drawCircle(mass1.pos, 40, mass1.color);
-  drawCircle(mass2.pos, 40, mass2.color);
-  drawCircle(mass3.pos, 40, mass3.color);
-  drawCircle(mass4.pos, 40, mass4.color);
-  drawCircle(mass5.pos, 40, mass5.color);
+  // draw all masses dynamically
+  for (const sm of staticMasses)
+    drawCircle(sm.pos, 40, sm.color);
+
+  for (const mm of mobileMasses)
+    drawCircle(mm.pos, 40, mm.color);
 
   drawObjAt(obj.pos, 10);
 }

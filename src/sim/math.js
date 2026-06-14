@@ -3,27 +3,53 @@ import {vec2} from 'littlejsengine';
 import { G, DIST_MIN, dtScale } from './state.js';
 
 export function calcGravityAccel(target, sourcePos, sourceMass) {
-  const dx = sourcePos.x - target.pos.x;
-  const dy = sourcePos.y - target.pos.y;
+  const tx = target?.pos?.x;
+  const ty = target?.pos?.y;
+  const sx = sourcePos?.x;
+  const sy = sourcePos?.y;
+  const tm = target?.mass;
+
+
+  const dx = sx - tx;
+  const dy = sy - ty;
   let distance = (dx * dx + dy * dy) ** 0.5;
   if (distance < DIST_MIN) distance = DIST_MIN;
 
-  const force = (G * target.mass * sourceMass) / (distance * distance);
-  const ax = (force * (dx / distance)) / target.mass;
-  const ay = (force * (dy / distance)) / target.mass;
+  const force = (G * tm * sourceMass) / (distance * distance);
+  const ax = (force * (dx / distance)) / tm;
+  const ay = (force * (dy / distance)) / tm;
 
+  if(isNaN(ax) || isNaN(ay)){
+    return vec2(0, 0);
+  }
+  
   return vec2(ax, ay);
 }
 
 export function calcMobileGravAccel(mobile, sourcePos, sourceMass) {
-  const dx = sourcePos.x - mobile.pos.x;
-  const dy = sourcePos.y - mobile.pos.y;
-  let distance = (dx * dx + dy * dy) ** 0.5;
-  if (distance < DIST_MIN) distance = DIST_MIN;
+  const mx = mobile?.pos?.x;
+  const my = mobile?.pos?.y;
+  const sx = sourcePos?.x;
+  const sy = sourcePos?.y;
+  const mm = mobile?.mass;
 
-  const force = (G * mobile.mass * sourceMass) / (distance * distance);
-  const ax = (force * (dx / distance)) / mobile.mass;
-  const ay = (force * (dy / distance)) / mobile.mass;
+  // If mobile mass is invalid (NaN) or temporarily 0, avoid division by 0.
+  if (!Number.isFinite(mx) || !Number.isFinite(my) || !Number.isFinite(sx) || !Number.isFinite(sy)) return vec2(0, 0);
+  if (!Number.isFinite(mm) || mm === 0) return vec2(0, 0);
+  if (!Number.isFinite(sourceMass)) return vec2(0, 0);
+
+  const dx = sx - mx;
+  const dy = sy - my;
+
+  let distance = (dx * dx + dy * dy) ** 0.5;
+  if (!Number.isFinite(distance) || distance < DIST_MIN) distance = DIST_MIN;
+
+  const force = (G * mm * sourceMass) / (distance * distance);
+  const ax = (force * (dx / distance)) / mm;
+  const ay = (force * (dy / distance)) / mm;
+
+  if (!Number.isFinite(ax) || !Number.isFinite(ay)) return vec2(0, 0);
+
   return vec2(ax, ay);
 }
 

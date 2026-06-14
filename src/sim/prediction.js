@@ -1,9 +1,24 @@
-import {vec2} from 'littlejsengine';
+import { vec2 } from 'littlejsengine';
 
-import { obj, staticMasses, mobileMasses, futurePositions, futureMobilePositions, futureStepsObj, futureStepsMobiles, samplingConstant } from './state.js';
+import {
+  obj,
+  futurePositions,
+  futureMobilePositions,
+  futureStepsObj,
+  futureStepsMobiles,
+  samplingConstant,
+  getStaticMasses,
+  getMobileMasses
+} from './state.js';
+
 import { calcGravityAccel, calcMobileGravAccel, integratePosition } from './math.js';
 
 export function computePredictedPath() {
+  try{
+
+  const staticMasses = getStaticMasses();
+  const mobileMasses = getMobileMasses();
+
   // reset arrays (keep references from state module)
   futurePositions.length = 0;
   futureMobilePositions.length = 0;
@@ -135,6 +150,10 @@ export function computePredictedPath() {
       futureMobilePositions[mIndex].push(futureMobileMasses[mIndex].pos.copy());
     }
   }
+  }
+catch (error) {
+   
+}
 }
 
 // exported for potential future use (not currently used directly)
