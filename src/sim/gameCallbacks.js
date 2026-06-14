@@ -65,6 +65,17 @@ export function gameInit() {
 }
 
 export function gameUpdate() {
+  const slowKey = keyIsDown('KeyQ');
+  const fastKey = keyIsDown('KeyE');
+
+  // Update dtScale even when paused (for visual feedback & consistent prediction).
+  // dtScale is clamped at minimum 0 (no reverse time).
+  if (slowKey) state.setDtScale(Math.max(0, state.dtScale - 0.01));
+  else if (fastKey) state.setDtScale(state.dtScale + 0.01);
+
+  const dtIndicator = document.getElementById('dtScaleIndicator');
+  if (dtIndicator) dtIndicator.textContent = state.dtScale.toFixed(2);
+
   if (state.isPaused) {
     resetToUserInput();
     return;

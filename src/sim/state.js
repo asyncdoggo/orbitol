@@ -5,7 +5,7 @@ export const canvasSize = vec2(1200, 800);
 export const G = 0.1;
 export const DIST_MIN = 10;
 export let dtScale = 0.1;
-export const keyBoardMul = 0.09
+export const keyBoardMul = 0.1
 
 // Track last values for prediction refresh control (prevents visible "morphing")
 
@@ -28,6 +28,10 @@ export function getStaticMasses() {
 
 export function getMobileMasses() {
   return masses.filter(m => m.type === 'mobile');
+}
+
+export function setDtScale(val) {
+  dtScale = val
 }
 
 function makeMass(type, id, color) {

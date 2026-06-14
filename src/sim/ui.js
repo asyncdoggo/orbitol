@@ -1,6 +1,7 @@
 'use strict';
 
 import { obj, masses, addMass, removeMass, clearMasses, getMobileMasses, getStaticMasses } from './state.js';
+import { mass_configs } from '../configs.js';
 
 const GRID_COLS = '70px 1fr';
 const MASS_INPUT_STEP = '0.01';
@@ -270,6 +271,10 @@ export function restoreSimulationFromLocalStorage() {
   const payload = JSON.parse(raw);
 
   // Restore obj
+  restoreSimulation(payload)
+}
+
+export function restoreSimulation(payload){
   if (payload?.obj) {
     obj.mass = payload.obj.mass ?? obj.mass;
 
@@ -305,47 +310,7 @@ export function restoreSimulationFromLocalStorage() {
 export function reseedSimulation(canvasSize) {
   // Clear existing masses and rebuild from defaults.
   clearMasses();
-
-  // obj seed
-  obj.mass = 1;
-  obj.pos.set(canvasSize.x / 2, canvasSize.y / 2 - 200);
-  obj.vel.set(0.2355, -0.1);
-  obj.ax = 0;
-  obj.ay = 0;
-
-  // Create some default masses (no longer hard-coded m1..m5 exports).
-  {
-    const s1 = addMass('static');
-    s1.mass = 100;
-    s1.pos.set(canvasSize.x / 2, canvasSize.y / 2);
-
-    const s2 = addMass('static');
-    s2.mass = 100;
-    s2.pos.set(canvasSize.x / 2 + 200, canvasSize.y / 2);
-
-    const m1 = addMass('mobile');
-    m1.mass = 0.00000001;
-    m1.pos.set(497.0, 400.0);
-    m1.vel.set(-0.0536, 0.25);
-    m1.ax = 0;
-    m1.ay = 0;
-
-    const m2 = addMass('mobile');
-    m2.mass = 0.00000001;
-    m2.pos.set(700.0, 400.0);
-    m2.vel.set(0.4406, 0.2971);
-    m2.ax = 0;
-    m2.ay = 0;
-
-    const m3 = addMass('mobile');
-    m3.mass = 0.00000001;
-    m3.pos.set(900.0, 400.0);
-    m3.vel.set(0.1898, 0.2758);
-    m3.ax = 0;
-    m3.ay = 0;
-  }
-
-  rerenderMassCards();
-  updateInputsFromCurrentState();
+  restoreSimulation(mass_configs['3planets'])
+  
 }
 
