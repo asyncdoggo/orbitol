@@ -1,6 +1,6 @@
 import {vec2} from 'littlejsengine';
 
-import { G, DIST_MIN, dtScale } from './state.js';
+import { G, DIST_MIN } from './state.js';
 
 export function calcGravityAccel(target, sourcePos, sourceMass) {
   const tx = target?.pos?.x;
@@ -54,8 +54,9 @@ export function calcMobileGravAccel(mobile, sourcePos, sourceMass) {
 }
 
 export function integratePosition(p, v, a) {
-  v.x += a.x * dtScale;
-  v.y += a.y * dtScale;
-  p.x += v.x * dtScale;
-  p.y += v.y * dtScale;
+  // Fixed dt per substep. `dtScale` is handled at a higher level by running multiple substeps.
+  v.x += a.x;
+  v.y += a.y;
+  p.x += v.x;
+  p.y += v.y;
 }

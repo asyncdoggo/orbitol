@@ -88,71 +88,79 @@ export function gameUpdate() {
   if (up) state.setKeyboard(state.keyboardAx, 0.001);
   else if (down) state.setKeyboard(state.keyboardAx, -0.001);
 
-  obj.ax = state.keyboardAx;
-  obj.ay = state.keyboardAy;
+  // dtScale should act as a time multiplier: advance multiple fixed-dt substeps per frame.
+  // If dtScale=1 => 1 substep, dtScale=100 => 100 substeps.
+  const subSteps = Math.max(1, Math.round(state.dtScale));
 
-  for (const mm of mobileMasses) {
-    mm.ax = 0;
-    mm.ay = 0;
-  }
+  for (let step = 0; step < subSteps; step++) {
+    // Start each substep with keyboard acceleration as a constant term.
+    obj.ax = state.keyboardAx;
+    obj.ay = state.keyboardAy;
 
-  // obj gravity from ALL masses
-  for (const sm of staticMasses) {
-    const dx = sm.pos.x - obj.pos.x;
-    const dy = sm.pos.y - obj.pos.y;
-    let distance = (dx * dx + dy * dy) ** 0.5;
-    if (distance < state.DIST_MIN) distance = state.DIST_MIN;
+    for (const mm of mobileMasses) {
+      mm.ax = 0;
+      mm.ay = 0;
+    }
 
-    const force = (state.G * obj.mass * sm.mass) / (distance * distance);
-    obj.ax += force * (dx / distance) / obj.mass;
-    obj.ay += force * (dy / distance) / obj.mass;
-  }
-
-  for (const mm of mobileMasses) {
-    const dx = mm.pos.x - obj.pos.x;
-    const dy = mm.pos.y - obj.pos.y;
-    let distance = (dx * dx + dy * dy) ** 0.5;
-    if (distance < state.DIST_MIN) distance = state.DIST_MIN;
-
-    const force = (state.G * obj.mass * mm.mass) / (distance * distance);
-    obj.ax += force * (dx / distance) / obj.mass;
-    obj.ay += force * (dy / distance) / obj.mass;
-  }
-
-  // mobiles gravity from static masses only
-  for (const mm of mobileMasses) {
+    // obj gravity from ALL masses
     for (const sm of staticMasses) {
-      const dx = sm.pos.x - mm.pos.x;
-      const dy = sm.pos.y - mm.pos.y;
+      const dx = sm.pos.x - obj.pos.x;
+      const dy = sm.pos.y - obj.pos.y;
       let distance = (dx * dx + dy * dy) ** 0.5;
       if (distance < state.DIST_MIN) distance = state.DIST_MIN;
 
-      const force = (state.G * mm.mass * sm.mass) / (distance * distance);
-      mm.ax += force * (dx / distance) / mm.mass;
-      mm.ay += force * (dy / distance) / mm.mass;
+      const force = (state.G * obj.mass * sm.mass) / (distance * distance);
+      obj.ax += force * (dx / distance) / obj.mass;
+      obj.ay += force * (dy / distance) / obj.mass;
     }
-  }
 
-  // mobiles mutual gravity
-  for (const sm1 of mobileMasses) {
-    for (const sm2 of mobileMasses) {
-      if (sm1 !== sm2) {
-        const dx = sm2.pos.x - sm1.pos.x;
-        const dy = sm2.pos.y - sm1.pos.y;
+    for (const mm of mobileMasses) {
+      const dx = mm.pos.x - obj.pos.x;
+      const dy = mm.pos.y - obj.pos.y;
+      let distance = (dx * dx + dy * dy) ** 0.5;
+      if (distance < state.DIST_MIN) distance = state.DIST_MIN;
+
+      const force = (state.G * obj.mass * mm.mass) / (distance * distance);
+      obj.ax += force * (dx / distance) / obj.mass;
+      obj.ay += force * (dy / distance) / obj.mass;
+    }
+
+    // mobiles gravity from static masses only
+    for (const mm of mobileMasses) {
+      for (const sm of staticMasses) {
+        const dx = sm.pos.x - mm.pos.x;
+        const dy = sm.pos.y - mm.pos.y;
         let distance = (dx * dx + dy * dy) ** 0.5;
         if (distance < state.DIST_MIN) distance = state.DIST_MIN;
 
-        const force = (state.G * sm1.mass * sm2.mass) / (distance * distance);
-        sm1.ax += force * (dx / distance) / sm1.mass;
-        sm1.ay += force * (dy / distance) / sm1.mass;
+        const force = (state.G * mm.mass * sm.mass) / (distance * distance);
+        mm.ax += force * (dx / distance) / mm.mass;
+        mm.ay += force * (dy / distance) / mm.mass;
       }
     }
-  }
 
-  for (const mm of mobileMasses) {
-    integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+    // mobiles mutual gravity
+    for (const sm1 of mobileMasses) {
+      for (const sm2 of mobileMasses) {
+        if (sm1 !== sm2) {
+          const dx = sm2.pos.x - sm1.pos.x;
+          const dy = sm2.pos.y - sm1.pos.y;
+          let distance = (dx * dx + dy * dy) ** 0.5;
+          if (distance < state.DIST_MIN) distance = state.DIST_MIN;
+
+          const force = (state.G * sm1.mass * sm2.mass) / (distance * distance);
+          sm1.ax += force * (dx / distance) / sm1.mass;
+          sm1.ay += force * (dy / distance) / sm1.mass;
+        }
+      }
+    }
+
+    // integrate: mobiles then obj
+    for (const mm of mobileMasses) {
+      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+    }
+    integratePosition(obj.pos, obj.vel, vec2(obj.ax, obj.ay));
   }
-  integratePosition(obj.pos, obj.vel, vec2(obj.ax, obj.ay));
 }
 
 export function gameUpdatePost() {
