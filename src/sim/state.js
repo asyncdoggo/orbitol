@@ -3,8 +3,10 @@ import {vec2, rgb, setCanvasFixedSize} from 'littlejsengine';
 export const canvasSize = vec2(1200, 800);
 
 export const G = 0.1;
-export const DIST_MIN = 1;
-export let dtScale = 1;
+export const DIST_MIN = 10;
+export let dtScale = 2;
+
+// Track last values for prediction refresh control (prevents visible "morphing")
 
 export const obj = {
   pos: vec2(),

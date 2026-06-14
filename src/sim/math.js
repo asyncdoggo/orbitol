@@ -53,10 +53,10 @@ export function calcMobileGravAccel(mobile, sourcePos, sourceMass) {
   return vec2(ax, ay);
 }
 
-export function integratePosition(p, v, a) {
-  // Fixed dt per substep. `dtScale` is handled at a higher level by running multiple substeps.
-  v.x += a.x;
-  v.y += a.y;
-  p.x += v.x;
-  p.y += v.y;
+export function integratePosition(p, v, a, dt = 1) {
+  // Integrate with real dt (keeps G/accel math constant; only time advances via dt)
+  v.x += a.x * dt;
+  v.y += a.y * dt;
+  p.x += v.x * dt;
+  p.y += v.y * dt;
 }

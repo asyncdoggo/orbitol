@@ -8,16 +8,24 @@ import {
   futureStepsMobiles,
   samplingConstant,
   getStaticMasses,
-  getMobileMasses
+  getMobileMasses,
+  dtScale,
+  keyboardAx,
+  keyboardAy
 } from './state.js';
 
 import { calcGravityAccel, calcMobileGravAccel, integratePosition } from './math.js';
 
 export function computePredictedPath() {
-  try{
-
   const staticMasses = getStaticMasses();
   const mobileMasses = getMobileMasses();
+
+  // Match live simulation's dtScale substep splitting
+  const rawTimeScale = dtScale;
+  const clampedTimeScale = rawTimeScale < 0 ? 0 : rawTimeScale;
+
+  const fullSteps = Math.floor(clampedTimeScale);
+  const frac = clampedTimeScale - fullSteps;
 
   // reset arrays (keep references from state module)
   futurePositions.length = 0;
@@ -47,9 +55,10 @@ export function computePredictedPath() {
 
   futurePositions.push(futureObj.pos.copy());
 
-  for (let i = 0; i < futureStepsObj; i++) {
+  const runSubStepForObj = (subDt) => {
     futureObj.ax = 0;
     futureObj.ay = 0;
+
     for (const mm of futureMobileMassesForObj) {
       mm.ax = 0;
       mm.ay = 0;
@@ -88,14 +97,25 @@ export function computePredictedPath() {
     }
 
     // integrate moving masses first
-    for (let mIndex = 0; mIndex < futureMobileMassesForObj.length; mIndex++) {
-      const mm = futureMobileMassesForObj[mIndex];
-      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+    for (const mm of futureMobileMassesForObj) {
+      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay), subDt);
     }
 
     // integrate futureObj last
-    integratePosition(futureObj.pos, futureObj.vel, vec2(futureObj.ax, futureObj.ay));
+    integratePosition(futureObj.pos, futureObj.vel, vec2(futureObj.ax, futureObj.ay), subDt);
+  };
 
+  const substepCount = fullSteps > 0 ? fullSteps : 0;
+
+  for (let i = 0; i < futureStepsObj; i++) {
+    for (let s = 0; s < substepCount; s++) runSubStepForObj(1);
+    if (frac > 0) runSubStepForObj(frac);
+    else if (clampedTimeScale === 0 && substepCount === 0) {
+      // nothing
+    } else if (substepCount === 0) {
+      // dtScale between 0 and 1 => run one fractional dt
+      runSubStepForObj(clampedTimeScale);
+    }
     futurePositions.push(futureObj.pos.copy());
   }
 
@@ -113,7 +133,7 @@ export function computePredictedPath() {
     futureMobilePositions.push([futureMobileMasses[mIndex].pos.copy()]);
   }
 
-  for (let i = 0; i < futureStepsMobiles; i++) {
+  const runSubStepForMobiles = (subDt) => {
     for (const mm of futureMobileMasses) {
       mm.ax = 0;
       mm.ay = 0;
@@ -140,9 +160,18 @@ export function computePredictedPath() {
     }
 
     // integrate moving masses
-    for (let mIndex = 0; mIndex < futureMobileMasses.length; mIndex++) {
-      const mm = futureMobileMasses[mIndex];
-      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+    for (const mm of futureMobileMasses) {
+      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay), subDt);
+    }
+  };
+
+  for (let i = 0; i < futureStepsMobiles; i++) {
+    for (let s = 0; s < substepCount; s++) runSubStepForMobiles(1);
+    if (frac > 0) runSubStepForMobiles(frac);
+    else if (clampedTimeScale === 0 && substepCount === 0) {
+      // nothing
+    } else if (substepCount === 0) {
+      runSubStepForMobiles(clampedTimeScale);
     }
 
     // record
@@ -150,11 +179,7 @@ export function computePredictedPath() {
       futureMobilePositions[mIndex].push(futureMobileMasses[mIndex].pos.copy());
     }
   }
-  }
-catch (error) {
-   
-}
 }
 
-// exported for potential future use (not currently used directly)
+// keep export to match any existing imports (even if unused)
 export { samplingConstant };

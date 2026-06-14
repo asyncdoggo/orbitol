@@ -88,12 +88,18 @@ export function gameUpdate() {
   if (up) state.setKeyboard(state.keyboardAx, 0.001);
   else if (down) state.setKeyboard(state.keyboardAx, -0.001);
 
-  // dtScale should act as a time multiplier: advance multiple fixed-dt substeps per frame.
-  // If dtScale=1 => 1 substep, dtScale=100 => 100 substeps.
-  const subSteps = Math.max(1, Math.round(state.dtScale));
+  // dtScale should be a true time multiplier per rendered frame.
+  // To avoid numeric issues and to ensure consistent integration, we split dtScale into substeps.
+  const rawTimeScale = state.dtScale;
+  const clampedTimeScale = rawTimeScale < 0 ? 0 : rawTimeScale;
 
-  for (let step = 0; step < subSteps; step++) {
-    // Start each substep with keyboard acceleration as a constant term.
+  const fullSteps = Math.floor(clampedTimeScale);
+  const frac = clampedTimeScale - fullSteps;
+
+  const substepCount = fullSteps > 0 ? fullSteps : 0;
+
+  const runStep = (subDt) => {
+    // reset accelerations (keyboard affects obj only)
     obj.ax = state.keyboardAx;
     obj.ay = state.keyboardAy;
 
@@ -155,17 +161,43 @@ export function gameUpdate() {
       }
     }
 
-    // integrate: mobiles then obj
+    // integrate mobiles then obj using subDt
     for (const mm of mobileMasses) {
-      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay));
+      integratePosition(mm.pos, mm.vel, vec2(mm.ax, mm.ay), subDt);
     }
-    integratePosition(obj.pos, obj.vel, vec2(obj.ax, obj.ay));
+    integratePosition(obj.pos, obj.vel, vec2(obj.ax, obj.ay), subDt);
+  };
+
+  // run full substeps at dt=1
+  for (let i = 0; i < substepCount; i++) runStep(1);
+
+  // run fractional remainder if any, or at least one step if dtScale is 0 (keeps behavior sane)
+  if (frac > 0) runStep(frac);
+  else if (clampedTimeScale === 0) {
+    // no movement
+  } else if (substepCount === 0) {
+    // dtScale between 0 and 1 but rounded down => run one fractional dt
+    runStep(clampedTimeScale);
   }
 }
 
 export function gameUpdatePost() {
-  if (!state.isPaused) updateInputsFromCurrentState();
-  computePredictedPath();
+  // Live prediction should update when the "prediction basis" changes.
+  // Otherwise, reuse the existing predicted path to avoid visible morphing artifacts.
+
+    // Keep UI->state inputs synchronized before recomputing predictions.
+    if (!state.isPaused)
+      updateInputsFromCurrentState();
+
+    computePredictedPath();
+
+    return;
+
+  // No recompute: keep existing futurePositions/futureMobilePositions stable while running.
+  if (state.isPaused) {
+    // When paused, inputs change via UI, so keep them synced, but don't morph unless pausedChanged/dtChanged fired.
+    updateInputsFromCurrentState();
+  }
 }
 
 export function gameRender() {
