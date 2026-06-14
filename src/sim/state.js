@@ -4,7 +4,8 @@ export const canvasSize = vec2(1200, 800);
 
 export const G = 0.1;
 export const DIST_MIN = 10;
-export let dtScale = 2;
+export let dtScale = 0.1;
+export const keyBoardMul = 0.09
 
 // Track last values for prediction refresh control (prevents visible "morphing")
 
@@ -94,5 +95,5 @@ export let futurePositions = [];
 export let futureMobilePositions = [];
 
 export const futureStepsObj = 1000;
-export const futureStepsMobiles = 5000;
-export const samplingConstant = 2000;
+export const futureStepsMobiles = 1000;
+export const samplingConstant = 1000;

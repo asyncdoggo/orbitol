@@ -81,12 +81,12 @@ export function gameUpdate() {
   const up = keyIsDown('ArrowUp') || keyIsDown('KeyW');
   const down = keyIsDown('ArrowDown') || keyIsDown('KeyS');
 
-  if (left) state.setKeyboard(-0.001, state.keyboardAy);
-  else if (right) state.setKeyboard(0.001, state.keyboardAy);
+  if (left) state.setKeyboard(-state.keyBoardMul, state.keyboardAy);
+  else if (right) state.setKeyboard(state.keyBoardMul, state.keyboardAy);
   else state.setKeyboard(state.keyboardAx, state.keyboardAy);
 
-  if (up) state.setKeyboard(state.keyboardAx, 0.001);
-  else if (down) state.setKeyboard(state.keyboardAx, -0.001);
+  if (up) state.setKeyboard(state.keyboardAx, state.keyBoardMul);
+  else if (down) state.setKeyboard(state.keyboardAx, -state.keyBoardMul);
 
   // dtScale should be a true time multiplier per rendered frame.
   // To avoid numeric issues and to ensure consistent integration, we split dtScale into substeps.
